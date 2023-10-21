@@ -2,46 +2,166 @@
 import Card from "../components/Card";
 import Avatar from "../components/Avatar";
 import ClickOutHandler from "react-clickout-handler";
-import { useState } from "react";
+import { useState, useContext, useEffect } from "react";
 import Link from "next/link";
+import ReactTimeAgo from "react-time-ago";
+import { UserContext } from "./context/UserContext";
+import { useSupabaseClient } from "@supabase/auth-helpers-react";
 
-function PostCard() {
+function PostCard({
+  id,
+  content,
+  created_at,
+  photos,
+  profiles: authorProfile,
+}) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [likes, setLikes] = useState([]);
+  const [commmets, setCommmets] = useState([]);
+  const [commnetText, setCommnetText] = useState("");
+  const [saved, setSaved] = useState(false);
+  const { profile: myProfile } = useContext(UserContext);
 
-  const HoverElement = 'text-sm md:text-md flex gap-2 md:gap-3 p-2 my-2 hover:bg-socialBlue hover:text-white md:-mx-4 px-6 md:px-4 rounded-md transition-all hover:scale-110 hover:shadow-md shadow-gray-300 items-center';
+  const supabase = useSupabaseClient();
 
-  function openDropdown(e){
+  const HoverElement =
+    "text-sm md:text-md flex gap-2 md:gap-3 p-2 my-2 hover:bg-socialBlue hover:text-white md:-mx-4 px-6 md:px-4 rounded-md transition-all hover:scale-110 hover:shadow-md shadow-gray-300 items-center";
+
+  useEffect(() => {
+    fetchLikes();
+    fetchComments();
+    if(myProfile?.id) fetchIsSaved();
+  }, []);
+
+  function fetchLikes() {
+    supabase
+      .from("likes")
+      .select()
+      .eq("post_id", id)
+      .then((result) => setLikes(result.data));
+  }
+
+  function fetchComments() {
+    supabase
+      .from("posts")
+      .select("*, profiles(*)")
+      .eq("parent", id)
+      .then((result) => setCommmets(result.data));
+  }
+
+  function fetchIsSaved() {
+    supabase
+      .from("saved_posts")
+      .select()
+      .eq("post_id", id)
+      .eq("user_id", myProfile?.id)
+      .then((result) => {
+        if (result?.data?.length > 0) setSaved(true);
+        else setSaved(false);
+      });
+  }
+
+  function openDropdown(e) {
     e.stopPropagation();
     setDropdownOpen(true);
   }
 
-  function handleClickOutsideDropdown(e){
+  function handleClickOutsideDropdown(e) {
     e.stopPropagation();
     setDropdownOpen(false);
+  }
+
+  const isLikedByMe = !!likes.find((like) => like.user_id === myProfile?.id);
+  function toggleLike() {
+    if (isLikedByMe) {
+      supabase
+        .from("likes")
+        .delete()
+        .eq("post_id", id)
+        .eq("user_id", myProfile.id)
+        .then((result) => {
+          fetchLikes();
+        });
+      return;
+    }
+    supabase
+      .from("likes")
+      .insert({
+        post_id: id,
+        user_id: myProfile.id,
+      })
+      .then((result) => {
+        fetchLikes();
+      });
+  }
+
+  function postCommment(ev) {
+    ev.preventDefault();
+    supabase
+      .from("posts")
+      .insert({
+        content: commnetText,
+        author: myProfile.id,
+        parent: id,
+      })
+      .then((result) => {
+        console.log(result);
+        fetchComments();
+        setCommnetText("");
+      });
+  }
+
+  function toggleSave() {
+    if (!saved) {
+      supabase
+        .from("saved_posts")
+        .insert({
+          user_id: myProfile.id,
+          post_id: id,
+        })
+        .then(result => {
+          setSaved(true);
+          setDropdownOpen(false);
+        });
+    } else {
+      supabase
+        .from("saved_posts")
+        .delete()
+        .eq("post_id", id)
+        .eq("user_id", myProfile.id)
+        .then(result => {
+          setSaved(false);
+          setDropdownOpen(false);
+        });
+    }
   }
 
   return (
     <Card>
       <div className="flex gap-3">
         <div>
-          <Link href={'/profile'}>
-            <Avatar src="https://media.macphun.com/img/uploads/customer/how-to/608/15542038745ca344e267fb80.28757312.jpg?q=85&w=1340" />
+          <Link href={"/profile/" + authorProfile?.id}>
+            <Avatar src={authorProfile?.avatar} />
           </Link>
         </div>
 
         <div className="grow">
           <p>
-            <Link href={'/profile'} className="mr-1 font-semibold">John</Link> shared a{" "}
-            <Link href={'/profile/album'} className="text-socialBlue">album</Link>
+            <Link
+              href={"/profile/" + authorProfile?.id}
+              className="mr-1 font-semibold"
+            >
+              {authorProfile?.name}
+            </Link>{" "}
+            shared a post
           </p>
-          <p className="text-gray-500 text-sm">2 hour ago</p>
+          <p className="text-gray-500 text-sm">
+            <ReactTimeAgo date={Date.parse(created_at)} />
+          </p>
         </div>
 
         <div className="relative">
-          <button
-            className="text-gray-500"
-            onClick={openDropdown}
-          >
+          <button className="text-gray-500" onClick={openDropdown}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
@@ -57,32 +177,51 @@ function PostCard() {
               />
             </svg>
           </button>
-        
-          {dropdownOpen && (
-            <div className="h-5 w-5 absolute top-0"></div>
-          )}
+
+          {dropdownOpen && <div className="h-5 w-5 absolute top-0"></div>}
 
           <ClickOutHandler onClickOut={handleClickOutsideDropdown}>
             <div className="relative">
               {dropdownOpen && (
                 <div className="absolute bg-white -right-6 shadow-md shadow-gray-300 p-3 rounded-sm border border-gray-100 w-56">
-                  <a className={HoverElement}>
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={1.5}
-                      stroke="currentColor"
-                      className="w-6 h-6"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z"
-                      />
-                    </svg>
-                    Save Post
-                  </a>
+                  <button onClick={toggleSave} className="w-full -my-2">
+                    <span className={HoverElement}>
+                      {saved && (
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth={1.5}
+                          stroke="currentColor"
+                          className="w-6 h-6"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M3 3l1.664 1.664M21 21l-1.5-1.5m-5.485-1.242L12 17.25 4.5 21V8.742m.164-4.078a2.15 2.15 0 011.743-1.342 48.507 48.507 0 0111.186 0c1.1.128 1.907 1.077 1.907 2.185V19.5M4.664 4.664L19.5 19.5"
+                          />
+                        </svg>
+                      )}
+
+                      {!saved && (
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth={1.5}
+                          stroke="currentColor"
+                          className="w-6 h-6"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z"
+                          />
+                        </svg>
+                      )}
+                      {saved ? "Unsave Post" : "Save Post"}
+                    </span>
+                  </button>
                   <a className={HoverElement}>
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -159,28 +298,28 @@ function PostCard() {
       </div>
 
       <div>
-        <p className="my-3 text-sm">
-          Wow! Cùng thoả thích vui tưng bừng cùng với kẹo dẻo Chupa Chups nào!
-          Hỡi các Chuppers, các chế đã thưởng thức đủ toàn bộ các vị ngon của
-          gia đình kẹo dẻo Chupa Chups chưa? Nếu chưa thì còn chần chừ gì mà
-          không xách ba lô lên và... vui hết nấc với từng viên kẹo ngon mê ly
-          nhé!
-        </p>
+        <p className="my-3 text-sm">{content}</p>
 
-        <div className="rounded-md overflow-hidden">
-          <img src="https://www.seiu1000.org/sites/main/files/main-images/camera_lense_0.jpeg" />
-        </div>
+        {photos?.length > 0 && (
+          <div className="flex gap-4">
+            {photos.map((photo) => (
+              <div key={photo}>
+                <img src={photo} className="rounded-md" alt="" />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="flex mt-5 gap-8">
-        <button className="flex gap-2 items-center">
+        <button className="flex gap-2 items-center" onClick={toggleLike}>
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
             strokeWidth={1.5}
             stroke="currentColor"
-            className="w-6 h-6"
+            className={"w-6 h-6 " + (isLikedByMe ? "fill-red-500" : "")}
           >
             <path
               strokeLinecap="round"
@@ -188,7 +327,7 @@ function PostCard() {
               d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
             />
           </svg>
-          72
+          {likes?.length}
         </button>
 
         <button className="flex gap-2 items-center">
@@ -206,7 +345,7 @@ function PostCard() {
               d="M2.25 12.76c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 011.037-.443 48.282 48.282 0 005.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z"
             />
           </svg>
-          12
+          {commmets.length}
         </button>
 
         <button className="flex gap-2 items-center">
@@ -229,14 +368,18 @@ function PostCard() {
       </div>
       <div className="flex mt-3 gap-3">
         <div>
-          <Avatar src="https://media.macphun.com/img/uploads/customer/how-to/608/15542038745ca344e267fb80.28757312.jpg?q=85&w=1340" />
+          <Avatar src={myProfile?.avatar} />
         </div>
 
         <div className="border grow rounded-full relative">
-          <textarea
-            className="block w-full p-3 px-4 h-12 rounded-full"
-            placeholder="Leave a commnet"
-          ></textarea>
+          <form onSubmit={postCommment}>
+            <input
+              value={commnetText}
+              onChange={(ev) => setCommnetText(ev.target.value)}
+              className="block w-full p-3 px-4 h-12 rounded-full"
+              placeholder="Leave a commnet"
+            />
+          </form>
           <button className="absolute top-3 right-3 text-gray-400">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -254,6 +397,32 @@ function PostCard() {
             </svg>
           </button>
         </div>
+      </div>
+      <div>
+        {commmets.length > 0 &&
+          commmets.map((comment) => (
+            <div key={comment.id} className="flex items-center gap-2 mt-2">
+              <Avatar src={comment.profiles.avatar} />
+
+              <div className="bg-gray-200 py-2 px-4 rounded-3xl">
+                <div>
+                  <Link href={"/profile/" + comment.profiles.id}>
+                    <span className="hover:underline font-semibold mr-1">
+                      {comment.profiles.name}
+                    </span>
+                  </Link>
+                  <span className="text-sm text-gray-400">
+                    <ReactTimeAgo
+                      timeStyle={"twitter"}
+                      date={new Date(comment.created_at).getTime()}
+                    />
+                  </span>
+                </div>
+
+                <p className="text-sm">{comment.content}</p>
+              </div>
+            </div>
+          ))}
       </div>
     </Card>
   );

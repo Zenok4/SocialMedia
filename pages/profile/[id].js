@@ -1,7 +1,7 @@
 import ProfilePage from "../profile";
 
-function Profile() {
+function Id() {
     return <ProfilePage/>;
 }
 
-export default Profile;
+export default Id;

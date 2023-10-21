@@ -1,62 +1,45 @@
-import uploadUserProfileImage from "../helper/user";
-import PreLoader from "./PreLoader";
+import PreLoader from "../components/PreLoader";
 import { useSession, useSupabaseClient } from "@supabase/auth-helpers-react";
 import { useState } from "react";
+import uploadUserProfileImage from "../helper/user";
 
-function Avatar({ src, size, editable, onChange }) {
+function Cover({ url, editable, onChange }) {
   const supabase = useSupabaseClient();
   const session = useSession();
+
+  const [isUploading, setIsUploading] = useState(false)
   
-
-  const [isUploading, setIsUploading] = useState(false);
-
-  async function handleAvatarChange(ev) {
+  async function updateCover(ev){
     const file = ev.target.files?.[0];
-    if (file) {
-      setIsUploading(true);
-      await uploadUserProfileImage(
-        supabase,
-        session.user.id,
-        file,
-        "avatars",
-        "avatar"
-      );
+    if(file){
+      setIsUploading(true)
+      await uploadUserProfileImage(supabase, session.user.id, file, 'covers', 'cover')
       setIsUploading(false);
-      if (onChange) onChange();
+      if(onChange) onChange();
     }
   }
 
-  let width = "w-12";
-  let height = "h-12";
-  if (size === "lg") {
-    width = "w-24 md:w-36";
-    height = "h-24 md:h-36";
-  }
   return (
-    <div className={`${width} relative`}>
-      <div className="rounded-full overflow-hidden ">
-          <img src={src} alt="" className={`${height} w-full object-cover`} />
+    <div className="relative h-36 overflow-hidden flex justify-center items-center ">
+      <div>
+        <img src={url} />
       </div>
-
       {isUploading && (
-        <div className="absolute inset-0 bg-white bg-opacity-80 flex items-center rounded-full">
-          <div className="inline-block mx-auto">
-            <PreLoader />
-          </div>
+        <div className="absolute inset-0 bg-white bg-opacity-80 flex items-center z-10">
+          <div className="inline-block mx-auto"><PreLoader/></div>
         </div>
       )}
-
       {editable && (
-        <div className="absolute right-0 bottom-0">
-          <label className="flex bg-white p-2 rounded-full shadow-md shadow-gray-500 cursor-pointer">
-            <input type="file" hidden onChange={handleAvatarChange} />
+        <div className="absolute right-0 bottom-0 m-2">
+          <label className="flex gap-1 items-center bg-white py-1 px-2 rounded-md shadow-md shadow-black cursor-pointer">
+            <input type="file" hidden onChange={updateCover}/>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
               strokeWidth={1.5}
               stroke="currentColor"
-              className="w-6 h-6"
+              className="w-5 h-5"
             >
               <path
                 strokeLinecap="round"
@@ -69,6 +52,7 @@ function Avatar({ src, size, editable, onChange }) {
                 d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z"
               />
             </svg>
+            Change Cover Image
           </label>
         </div>
       )}
@@ -76,4 +60,4 @@ function Avatar({ src, size, editable, onChange }) {
   );
 }
 
-export default Avatar;
+export default Cover;
