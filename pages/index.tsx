@@ -35,9 +35,6 @@ export default function Home() {
     .is('parent', null)
     .order('created_at', {ascending: false})
     .then(result => {
-      // 👇️ ts-ignore ignores any ts errors on the next line
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
       setPosts(result.data)
     })
   }
