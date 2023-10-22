@@ -23,8 +23,8 @@ export default function Home() {
     .select()
     .eq('id', session?.user.id)
     .then(result => {
-      if(result?.data.length){
-        setProfile(result.data[0])
+      if(result?.data?.length){
+        setProfile(result?.data?.[0])
       }
     })
   }, [session?.user?.id])
@@ -35,6 +35,7 @@ export default function Home() {
     .is('parent', null)
     .order('created_at', {ascending: false})
     .then(result => {
+      // @ts-ignore: Object is possibly 'null'.
       setPosts(result.data)
     })
   }
@@ -48,7 +49,7 @@ export default function Home() {
       <UserContext.Provider value={{profile}}>
         <PostFormCard onPost = {fetchPosts}/>
         {posts?.length > 0 && posts.map(post => (
-          <PostCard key={post.id} {...post}/>
+          <PostCard key={post['id']} {...post}/>
         ))}
       </UserContext.Provider>
     </Layout>
