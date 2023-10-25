@@ -22,9 +22,10 @@ function SavePostPage() {
           .from("posts")
           .select("*, profiles(*)")
           .in("id", postsIds)
+          .order("created_at", { ascending: false })
           .then((result) => setPosts(result.data));
       });
-  }, [session?.user?.id]);
+  }, [posts]);
   return (
     <Layout>
       <UserContextProvider>

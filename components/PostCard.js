@@ -46,6 +46,7 @@ function PostCard({
       .from("posts")
       .select("*, profiles(*)")
       .eq("parent", id)
+      .order("created_at", { ascending: false })
       .then((result) => setCommmets(result.data));
   }
 
@@ -181,7 +182,7 @@ function PostCard({
           {dropdownOpen && <div className="h-5 w-5 absolute top-0"></div>}
 
           <ClickOutHandler onClickOut={handleClickOutsideDropdown}>
-            <div className="relative">
+            <div className="relative z-10">
               {dropdownOpen && (
                 <div className="absolute bg-white -right-6 shadow-md shadow-gray-300 p-3 rounded-sm border border-gray-100 w-56">
                   <button onClick={toggleSave} className="w-full -my-2">
