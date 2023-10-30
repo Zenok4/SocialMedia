@@ -8,7 +8,7 @@ function NavigationCard() {
   const {asPath: pathname} = router;
 
   const activeElementClasses = 'text-sm md:text-md flex gap-1 md:gap-3 py-3 my-1 bg-socialBlue text-white md:-mx-7 px-6 md:px-7 rounded-md shadow-md shadow-gray-300 items-center';
-  const nonActiveElementClasses = 'text-sm md:text-md flex gap-1 md:gap-3 py-2 my-2 hover:bg-blue-500 hover:bg-opacity-20 md:-mx-8 px-8 md:px-8 rounded-md transition-all hover:scale-110 hover:shadow-md shadow-gray-300 items-center';
+  const nonActiveElementClasses = 'text-sm md:text-md flex gap-1 md:gap-3 py-2 my-2 hover:bg-blue-500 hover:bg-opacity-20 md:-mx-4 px-6 md:px-4 rounded-md transition-all hover:scale-110 hover:shadow-md shadow-gray-300 items-center';
   
   const supabases = useSupabaseClient();
   async function logout(){
@@ -17,7 +17,7 @@ function NavigationCard() {
   
   return (
         <Card noPadding={true}>
-          <div className="px-4 py-2 flex gap-4 justify-between md:block shadow-md shadow-gray-500 md:shadow-none">
+          <div className="px-4 py-2 flex gap-1 md:gap-4 justify-between md:block shadow-md shadow-gray-500 md:shadow-none">
               <h2 className="text-gray-400 mb-3 hidden md:block">Navigation</h2>
               <Link href="/" className={pathname === '/' ? activeElementClasses : nonActiveElementClasses}>
                 <svg
